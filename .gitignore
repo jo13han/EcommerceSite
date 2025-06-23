@@ -1,0 +1,14 @@
+# Ignore node_modules everywhere
+node_modules/
+
+# Ignore .env files everywhere
+.env
+backend/.env
+ecommerce/.env
+
+# Ignore log files
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
