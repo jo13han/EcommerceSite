@@ -2,7 +2,6 @@ const User = require('../models/userModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const { sendOTP, verifyOTP } = require('../lib/twilio');
 
 // Email sender setup (configure for your real email provider)
 const transporter = nodemailer.createTransport({
@@ -81,9 +80,6 @@ exports.signup = async (req, res) => {
       subject: 'Your OTP Code',
       text: `Your OTP code is: ${otp}`
     });
-
-    // Send OTP via Twilio SMS
-    await sendOTP(phone);
 
     // Generate JWT token with 2 days expiration
     const token = jwt.sign(
@@ -173,11 +169,6 @@ exports.verifyOtp = async (req, res) => {
     if (user.isVerified) {
       return res.status(400).json({ error: 'User already verified.' });
     }
-    // Verify phone OTP with Twilio
-    const twilioResult = await verifyOTP(phone, phoneOtp);
-    if (twilioResult.status !== 'approved') {
-      return res.status(400).json({ error: 'Invalid or expired phone OTP.' });
-    }
     // Verify email OTP
     if (!user.otp || !user.otpExpires || user.otp !== emailOtp) {
       return res.status(400).json({ error: 'Invalid email OTP.' });
@@ -250,8 +241,6 @@ exports.resendOtp = async (req, res) => {
       subject: 'Your OTP Code (Resent)',
       text: `Your new OTP code is: ${otp}`
     });
-    // Send OTP via Twilio SMS
-    await sendOTP(user.phone);
     res.json({ message: 'OTP resent to email and phone.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
