@@ -14,16 +14,15 @@ const transporter = nodemailer.createTransport({
 
 exports.signup = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Validate required fields
-    if (!name || !email || !phone || !password) {
+    if (!name || !email || !password) {
       return res.status(400).json({ 
         error: 'All fields are required',
         details: {
           name: !name ? 'Name is required' : null,
           email: !email ? 'Email is required' : null,
-          phone: !phone ? 'Phone is required' : null,
           password: !password ? 'Password is required' : null
         }
       });
@@ -38,21 +37,12 @@ exports.signup = async (req, res) => {
       });
     }
 
-    // Validate phone format (simple international, e.g. +919999999999)
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(phone)) {
-      return res.status(400).json({
-        error: 'Invalid phone number format',
-        details: 'Please provide a valid phone number with country code (e.g. +919999999999)'
-      });
-    }
-
     // Check if user already exists
-    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(409).json({ 
-        error: 'Email or phone already registered',
-        details: 'An account with this email or phone already exists. Please use a different email/phone or try logging in.'
+        error: 'Email already registered',
+        details: 'An account with this email already exists. Please use a different email or try logging in.'
       });
     }
 
@@ -66,7 +56,6 @@ exports.signup = async (req, res) => {
     const user = await User.create({ 
       name, 
       email, 
-      phone,
       password: hashedPassword,
       isVerified: false,
       otp,
@@ -89,14 +78,13 @@ exports.signup = async (req, res) => {
     );
 
     res.status(201).json({ 
-      message: 'User created successfully. OTP sent to email and phone.',
+      message: 'User created successfully. OTP sent to email.',
       userId: user._id,
       token,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         isVerified: user.isVerified
       }
     });
@@ -157,12 +145,11 @@ exports.login = async (req, res) => {
 // OTP verification endpoint
 exports.verifyOtp = async (req, res) => {
   try {
-    const { email, phone, phoneOtp, emailOtp } = req.body;
-    if (!phoneOtp || !emailOtp || !email || !phone) {
-      return res.status(400).json({ error: 'Both phone and email OTPs, as well as email and phone, are required.' });
+    const { email, emailOtp } = req.body;
+    if (!emailOtp || !email) {
+      return res.status(400).json({ error: 'Email and email OTP are required.' });
     }
-    // Find user by email and phone
-    const user = await User.findOne({ email, phone });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
@@ -203,7 +190,6 @@ exports.verifyOtp = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         isVerified: user.isVerified
       }
     });
@@ -216,12 +202,11 @@ exports.verifyOtp = async (req, res) => {
 // Resend OTP endpoint
 exports.resendOtp = async (req, res) => {
   try {
-    const { email, phone } = req.body;
-    if (!email && !phone) {
-      return res.status(400).json({ error: 'Email or phone is required.' });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' });
     }
-    // Find user by email or phone
-    const user = await User.findOne(email ? { email } : { phone });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
@@ -241,7 +226,7 @@ exports.resendOtp = async (req, res) => {
       subject: 'Your OTP Code (Resent)',
       text: `Your new OTP code is: ${otp}`
     });
-    res.json({ message: 'OTP resent to email and phone.' });
+    res.json({ message: 'OTP resent to email.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
     res.status(500).json({ error: err.message || 'Error resending OTP' });

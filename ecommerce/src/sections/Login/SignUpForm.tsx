@@ -42,7 +42,19 @@ const SignUpForm = () => {
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/api/auth/verify-otp', { email, emailOtp });
+      const res = await api.post('/api/auth/verify-otp', { email, emailOtp });
+      // Save token and sessionId (if returned) and update AuthContext
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+      }
+      if (res.data.sessionId) {
+        localStorage.setItem('sessionId', res.data.sessionId);
+      }
+      if (res.data.token && res.data.user) {
+        setToken(res.data.token);
+        setSessionId(res.data.sessionId || null);
+        setUser(res.data.user);
+      }
       setInfo('Account verified! Redirecting to home...');
       setTimeout(() => router.push('/'), 1500);
     } catch (err) {

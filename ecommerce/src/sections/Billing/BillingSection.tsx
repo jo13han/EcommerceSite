@@ -93,10 +93,6 @@ export default function BillingSection() {
               <label className="block  mb-2 text-black">Town/City<span className="text-[#DB4444]">*</span></label>
               <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" required />
             </div>
-            <div>
-              <label className="block  mb-2 text-black">Phone Number<span className="text-[#DB4444]">*</span></label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" required />
-            </div>
             <div className="flex items-center mt-2">
               <input type="checkbox" id="save-info" className="accent-[#DB4444] w-5 h-5 mr-2" />
               <label htmlFor="save-info" className="text-black select-none">Save this information for faster check-out next time</label>

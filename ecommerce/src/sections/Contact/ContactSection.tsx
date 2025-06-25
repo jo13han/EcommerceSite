@@ -39,7 +39,6 @@ export default function ContactSection() {
             <div className="flex flex-col gap-4 md:flex-row md:flex-wrap">
               <input type="text" placeholder="Name*" className="flex-1 min-w-0 bg-gray-50 border rounded px-4 py-3 outline-none text-slate-500 w-full" required />
               <input type="email" placeholder="Email*" className="flex-1 min-w-0 bg-gray-50 border rounded px-4 py-3 outline-none text-slate-500 w-full" required />
-              <input type="tel" placeholder="Phone*" className="flex-1 min-w-0 bg-gray-50 border rounded px-4 py-3 outline-none text-slate-500 w-full" required />
             </div>
             <textarea placeholder="Message" className="bg-gray-50 border rounded px-4 py-3 outline-none text-slate-500 min-h-[120px] md:min-h-[150px] w-full" required />
             <div className="flex justify-end">
