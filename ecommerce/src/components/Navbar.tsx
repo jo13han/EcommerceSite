@@ -143,11 +143,20 @@ const Navbar = () => {
             </>
           ) : null}
         </nav>
-        
-        {/* Mobile Search Button */}
-        <button className="md:hidden p-2 transition-transform hover:scale-110" aria-label="Search">
-          <FiSearch className="h-5 w-5 text-black" />
-        </button>
+        {/* Mobile: Hamburger + Search (right aligned) */}
+        <div className="flex items-center gap-2 md:hidden ml-auto">
+          <button
+            className="p-2"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <FiMenu className="h-6 w-6 text-black" />
+          </button>
+          <button className="p-2 transition-transform hover:scale-110" aria-label="Search">
+            <FiSearch className="h-5 w-5 text-black" />
+          </button>
+        </div>
+        {/* Desktop Search and Icons */}
         <div className="relative hidden md:flex items-center">
           <input 
             type="text" 
@@ -215,20 +224,46 @@ const Navbar = () => {
             </div>
           )}
         </div>
-        {/* Hamburger Icon for Mobile */}
-        <button
-          className="md:hidden p-2"
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Open menu"
-        >
-          <FiMenu className="h-6 w-6 text-black" />
-        </button>
       </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
           <div className="absolute right-0 top-0 h-full w-64 bg-white p-4 overflow-y-auto">
+            {/* User Info and Actions (Mobile) */}
+            {user && (
+              <div className="flex flex-col items-center mb-6">
+                <Image
+                  src={user.photoURL || "/images/user.png"}
+                  alt="User"
+                  width={56}
+                  height={56}
+                  className="rounded-full bg-[#DB4444] p-2 mb-2"
+                />
+                <span className="font-semibold text-black text-base mb-1">
+                  {user.name || user.email}
+                </span>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-black hover:bg-gray-100 rounded w-full justify-center"
+                >
+                  <FiLogOut className="h-5 w-5" />
+                  Logout
+                </button>
+              </div>
+            )}
+            {/* Cart and Wishlist Icons (Mobile) */}
+            <div className="flex justify-center gap-6 mb-6">
+              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} aria-label="Wishlist">
+                <FiHeart className="h-6 w-6 text-black" />
+              </Link>
+              <Link href="/cart" onClick={() => setMobileMenuOpen(false)} aria-label="Cart">
+                <FiShoppingCart className="h-6 w-6 text-black" />
+              </Link>
+            </div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-black">Menu</h2>
               <button
