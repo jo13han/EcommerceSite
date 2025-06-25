@@ -5,8 +5,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'koshy.johan@gmail.com', // replace with your email
-    pass: 'bixv slra qicz odsd',    // replace with your app password
+    user: process.env.NODEMAILER_EMAIL, // replace with your email
+    pass: process.env.NODEMAILER_PASS,    // replace with your app password
   },
 });
 
@@ -26,7 +26,7 @@ exports.subscribe = async (req, res) => {
 
     // Send confirmation email
     await transporter.sendMail({
-      from: 'koshy.johan@gmail.com',
+      from: process.env.NODEMAILER_EMAIL,
       to: email,
       subject: 'Subscription Confirmation',
       text: 'Thank you for subscribing to our newsletter!'
