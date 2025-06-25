@@ -35,11 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(storedToken);
       if (storedSessionId) setSessionId(storedSessionId);
       // Fetch user data
-      api.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${storedToken}` }
-      })
+      api.get('/api/auth/me')
       .then(res => {
-        setUser(res.data);
+        setUser(res.data.user);
       })
       .catch((error) => {
         // If token is invalid, clear everything

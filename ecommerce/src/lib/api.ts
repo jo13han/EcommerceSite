@@ -1,21 +1,30 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
+// Add a request interceptor to include the token in all requests
+api.interceptors.request.use(
+  (config) => {
+    // Check if window is defined (to avoid SSR errors) and get token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
-    // Add Authorization header if token exists
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     console.log('Request config:', {
       url: config.url,
       method: config.method,
