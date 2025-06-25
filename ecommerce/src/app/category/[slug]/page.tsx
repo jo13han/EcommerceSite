@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Card from '@/components/Card';
 import Sidebar from '@/sections/Homepage/Sidebar';
+import api from '@/lib/api';
 
 interface Product {
   id: string;
@@ -31,11 +32,8 @@ export default function CategoryPage() {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/products`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        const data = await response.json();
+        const response = await api.get('/api/products');
+        const data = response.data;
         console.log('API data:', data, 'Slug:', categorySlug);
         const productsArray = Array.isArray(data) ? data : data.products;
         const categoryProducts = productsArray.filter((product: Product) =>
