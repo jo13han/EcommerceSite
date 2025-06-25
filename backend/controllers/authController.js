@@ -7,8 +7,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'koshy.johan@gmail.com', // replace with your email
-    pass: 'bixv slra qicz odsd',    // replace with your app password
+    user: process.env.NODEMAILER_EMAIL, // replace with your email
+    pass: process.env.NODEMAILER_PASS,    // replace with your app password
   },
 });
 
@@ -75,7 +75,7 @@ exports.signup = async (req, res) => {
 
     // Send OTP via email (optional, keep if you want email OTP)
     await transporter.sendMail({
-      from: 'your-email@gmail.com',
+      from: process.env.NODEMAILER_EMAIL,
       to: email,
       subject: 'Your OTP Code',
       text: `Your OTP code is: ${otp}`
@@ -236,7 +236,7 @@ exports.resendOtp = async (req, res) => {
     await user.save();
     // Send OTP via email (optional)
     await transporter.sendMail({
-      from: 'your-email@gmail.com',
+      from: process.env.NODEMAILER_EMAIL,
       to: user.email,
       subject: 'Your OTP Code (Resent)',
       text: `Your new OTP code is: ${otp}`
