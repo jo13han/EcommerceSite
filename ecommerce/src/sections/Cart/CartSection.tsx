@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import Image from 'next/image';
 import { FiTrash2, FiMinus, FiPlus } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
 
 interface CartItem {
   productId: string;
@@ -25,36 +26,33 @@ const CartSection = () => {
   const { token } = useAuth();
   const router = useRouter();
 
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!token) {
       setIsLoading(false);
       return;
     }
     try {
-      const response = await api.get('/api/cart', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/api/cart');
       setCartItems(response.data);
       setError(null);
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError;
       setError('Failed to fetch cart');
-      console.error('Error fetching cart:', error);
+      console.error('Error fetching cart:', axiosError);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchCart();
-  }, [token]);
+  }, [fetchCart]);
 
   const handleRemoveFromCart = async (productId: string) => {
     if (!token) return;
 
     try {
-      await api.delete(`/api/cart/remove/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/cart/remove/${productId}`);
       setCartItems(prev => prev.filter(item => item.productId !== productId));
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -67,8 +65,7 @@ const CartSection = () => {
 
     try {
       await api.put(`/api/cart/update/${productId}`, 
-        { quantity: newQuantity },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { quantity: newQuantity }
       );
       setCartItems(prev => prev.map(item => 
         item.productId === productId 

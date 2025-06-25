@@ -37,7 +37,6 @@ export default function CategoryPage() {
         }
         const data = await response.json();
         console.log('API data:', data, 'Slug:', categorySlug);
-        const normalize = (str: string) => str?.toLowerCase().replace(/[\s-]/g, '');
         const productsArray = Array.isArray(data) ? data : data.products;
         const categoryProducts = productsArray.filter((product: Product) =>
           product.categoryid === categorySlug

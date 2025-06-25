@@ -6,6 +6,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
+  address?: string;
 }
 
 interface AuthContextType {
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(res => {
         setUser(res.data.user);
       })
-      .catch((error) => {
+      .catch(() => {
         // If token is invalid, clear everything
         localStorage.removeItem('token');
         localStorage.removeItem('sessionId');

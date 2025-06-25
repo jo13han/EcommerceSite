@@ -3,11 +3,11 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signUp } from '@/api/auth';
 import api from '@/lib/api';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { AxiosError } from 'axios';
 
 const SignUpForm = () => {
   const router = useRouter();
@@ -17,7 +17,6 @@ const SignUpForm = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [otp, setOtp] = useState('');
   const [info, setInfo] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
   const { setToken, setSessionId, setUser } = useAuth();
@@ -30,8 +29,9 @@ const SignUpForm = () => {
       await api.post('/api/auth/signup', { name, email, password });
       setStep(2);
       setInfo('OTP sent to your email.');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ error: string }>;
+      setError(axiosError.response?.data?.error || (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -45,8 +45,9 @@ const SignUpForm = () => {
       await api.post('/api/auth/verify-otp', { email, emailOtp });
       setInfo('Account verified! Redirecting to home...');
       setTimeout(() => router.push('/'), 1500);
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ error: string }>;
+      setError(axiosError.response?.data?.error || (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +60,9 @@ const SignUpForm = () => {
     try {
       await api.post('/api/auth/resend-otp', { email });
       setInfo('OTP resent to your email.');
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message);
+    } catch (err) {
+      const axiosError = err as AxiosError<{ error: string }>;
+      setError(axiosError.response?.data?.error || (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -94,8 +96,12 @@ const SignUpForm = () => {
       }
       setInfo('Signed up with Google: ' + user.email);
       setTimeout(() => router.push('/'), 1500);
-    } catch (error: any) {
-      setError('Google sign-in failed: ' + (error.message || 'Unknown error'));
+    } catch (error) {
+      let message = 'Unknown error';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      setError('Google sign-in failed: ' + message);
     } finally {
       setIsLoading(false);
     }

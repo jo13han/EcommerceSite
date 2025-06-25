@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function AccountSection() {
   const [activeSection, setActiveSection] = useState<string | null>("profile");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen] = useState(false);
   const { user } = useAuth();
 
   const profile = user
@@ -14,7 +14,7 @@ export default function AccountSection() {
         firstName: user.name?.split(' ')[0] || '',
         lastName: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        address: (user as any).address || '',
+        address: user.address || '',
       }
     : null;
 

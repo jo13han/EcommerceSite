@@ -6,7 +6,7 @@ import { useState } from 'react';
 import api from '@/lib/api';
 
 const Footer = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ const Footer = () => {
     try {
       await api.post('/api/subscribe', { email: user.email });
       setSubscribed(true);
-    } catch (err: any) {
+    } catch {
       setError('Failed to subscribe.');
     } finally {
       setLoading(false);

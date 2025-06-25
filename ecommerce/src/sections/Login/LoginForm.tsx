@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -24,8 +25,12 @@ const LoginForm = () => {
       await login(email, password);
       // Force a full client-side reload to update UI
       window.location.href = '/';
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -57,8 +62,12 @@ const LoginForm = () => {
         setUser(res.data.user);
       }
       router.push('/');
-    } catch (error: any) {
-      setError('Google login failed: ' + (error.message || 'Unknown error'));
+    } catch (error) {
+      let message = 'Unknown error';
+      if (error instanceof Error) {
+        message = error.message;
+      }
+      setError('Google login failed: ' + message);
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +132,7 @@ const LoginForm = () => {
           onClick={handleGoogleLogin}
           className="flex items-center justify-center w-full border border-gray-300 py-3 rounded mb-3 text-black"
         >
-          <img src="/images/login/google-icon.svg" width={20} height={20} alt="Google" className="mr-2" />
+          <Image src="/images/login/google-icon.svg" width={20} height={20} alt="Google" className="mr-2" />
           Login with Google
         </button>
       </div>

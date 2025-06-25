@@ -1,11 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Card from '@/components/Card';
 import NavigationArrows from '@/components/NavigationArrows';
 import 'keen-slider/keen-slider.min.css';
 import { useKeenSlider } from 'keen-slider/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { AxiosError } from 'axios';
 
 interface Product {
   productId: string;
@@ -25,46 +26,40 @@ const WishlistSection = () => {
   const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
 
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     if (!token) {
       setIsLoading(false);
       return;
     }
     try {
-      const response = await api.get('/api/wishlist', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/api/wishlist');
       const products = Array.isArray(response.data)
         ? response.data.map(item => item.product || item)
         : [];
       setWishlistProducts(products);
       setError(null);
-    } catch (error: any) {
+    } catch (error) {
       setError('Failed to fetch wishlist');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchWishlist();
-  }, [token]);
+  }, [fetchWishlist]);
 
   const handleRemoveFromWishlist = async (productId: string) => {
     if (!token) return;
 
     try {
-      await api.delete(`/api/wishlist/remove/${productId}`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      await api.delete(`/api/wishlist/remove/${productId}`);
       setWishlistProducts(prev => prev.filter(p => p.productId !== productId));
       setError(null);
-    } catch (error: any) {
-      console.error('Error removing from wishlist:', error.response?.data || error.message);
-      setError(error.response?.data?.error || 'Failed to remove from wishlist');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      console.error('Error removing from wishlist:', axiosError.response?.data || (error as Error).message);
+      setError(axiosError.response?.data?.error || 'Failed to remove from wishlist');
     }
   };
 

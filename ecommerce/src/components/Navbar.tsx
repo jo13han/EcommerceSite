@@ -4,7 +4,7 @@ import { FiSearch, FiHeart, FiShoppingCart } from "react-icons/fi";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FiUser, FiBox, FiXCircle, FiStar, FiLogOut, FiMenu, FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiUser, FiBox, FiStar, FiLogOut, FiMenu, FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useAuth } from "@/context/AuthContext";
 
 // Category map (reuse from Sidebar)

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { AxiosError } from "axios";
 
 interface CardProps {
   image: string;
@@ -54,7 +55,7 @@ const Card = ({
       isWishlistItem,
       hasToken: !!token
     });
-  }, []);
+  }, [productId, title, isWishlistItem, token]);
 
   // Check if product is in wishlist when component mounts
   useEffect(() => {
@@ -70,9 +71,7 @@ const Card = ({
       
       try {
         console.log('Checking wishlist status for product:', { productId, title });
-        const response = await api.get(`/api/wishlist/check/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get(`/api/wishlist/check/${productId}`);
         setIsWishlisted(response.data.isWishlisted);
       } catch (error) {
         console.error('Error checking wishlist status:', error);
@@ -87,9 +86,7 @@ const Card = ({
     const checkCartStatus = async () => {
       if (!token || !productId) return;
       try {
-        const response = await api.get('/api/cart', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get('/api/cart');
         const cartItems = Array.isArray(response.data) ? response.data : [];
         const found = cartItems.some(item => item.product && item.product.productId === productId);
         setIsInCart(found);
@@ -105,15 +102,11 @@ const Card = ({
     setIsLoading(true);
     try {
       if (isWishlisted) {
-        await api.delete(`/api/wishlist/remove/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await api.delete(`/api/wishlist/remove/${productId}`);
         if (onRemoveFromWishlist) onRemoveFromWishlist();
       } else {
         // First check if product is already in wishlist
-        const checkResponse = await api.get(`/api/wishlist/check/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const checkResponse = await api.get(`/api/wishlist/check/${productId}`);
         
         if (checkResponse.data.isWishlisted) {
           alert('This product is already in your wishlist!');
@@ -131,8 +124,6 @@ const Card = ({
             reviewCount,
             discountPercentage,
           }
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
         });
       }
       setIsWishlisted(!isWishlisted);
@@ -190,16 +181,15 @@ const Card = ({
           discountPercentage,
           quantity: 1
         }
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setIsInCart(true);
       alert('Product added to cart!');
-    } catch (error: any) {
-      if (error.response?.status === 400) {
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if (axiosError.response?.status === 400) {
         setIsInCart(true);
         alert('Product already in cart!');
-      } else if (error.response?.status === 401) {
+      } else if (axiosError.response?.status === 401) {
         alert('Please login to add items to cart');
         router.push('/login');
       } else {

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { AxiosError } from "axios";
 
 const paymentIcons = [
   "/images/billing/bkash.png",
@@ -11,10 +12,18 @@ const paymentIcons = [
   "/images/billing/nagad.png",
 ];
 
+interface CartItem {
+  productId: string;
+  image: string;
+  title: string;
+  price: number;
+  quantity: number;
+}
+
 export default function BillingSection() {
   const [payment, setPayment] = useState("cod");
   const { token } = useAuth();
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,14 +34,13 @@ export default function BillingSection() {
         return;
       }
       try {
-        const response = await api.get('/api/cart', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get('/api/cart');
         setCartItems(response.data);
         setError(null);
-      } catch (error: any) {
+      } catch (error) {
+        const axiosError = error as AxiosError;
         setError('Failed to fetch cart');
-        console.error('Error fetching cart:', error);
+        console.error('Error fetching cart:', axiosError);
       } finally {
         setIsLoading(false);
       }
