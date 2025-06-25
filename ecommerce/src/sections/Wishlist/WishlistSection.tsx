@@ -1,9 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Card from '@/components/Card';
-import NavigationArrows from '@/components/NavigationArrows';
 import 'keen-slider/keen-slider.min.css';
-import { useKeenSlider } from 'keen-slider/react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { AxiosError } from 'axios';
@@ -38,7 +36,7 @@ const WishlistSection = () => {
         : [];
       setWishlistProducts(products);
       setError(null);
-    } catch (error) {
+    } catch {
       setError('Failed to fetch wishlist');
     } finally {
       setIsLoading(false);
