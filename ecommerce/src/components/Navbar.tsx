@@ -51,9 +51,11 @@ const Navbar = () => {
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -74,6 +76,16 @@ const Navbar = () => {
     router.push('/');
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push('/products');
+    }
+    setShowMobileSearch(false);
+  };
+
   const toggleCategory = (categoryName: string) => {
     setExpandedCategories(prev =>
       prev.includes(categoryName)
@@ -85,7 +97,15 @@ const Navbar = () => {
   return (
     <div className="w-full border-b bg-white border-gray-300">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-black">Exclusive</h1>
+        <Link href="/" className="flex items-center gap-2">
+          <Image 
+            src="/images/favicon_io/favicon-32x32.png" 
+            alt="Logo" 
+            width={32} 
+            height={32} 
+          />
+          <span className="text-xl font-bold text-black">ExclusiveIO</span>
+        </Link>
         {/* Desktop Navigation */}
         <nav className="hidden md:flex gap-8 ml-8 flex-1">
           <Link 
@@ -147,24 +167,32 @@ const Navbar = () => {
         <div className="flex items-center gap-2 md:hidden ml-auto">
           <button
             className="p-2"
+            onClick={() => setShowMobileSearch(true)}
+            aria-label="Search"
+          >
+            <FiSearch className="h-5 w-5 text-black" />
+          </button>
+          <button
+            className="p-2"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open menu"
           >
             <FiMenu className="h-6 w-6 text-black" />
           </button>
-          <button className="p-2 transition-transform hover:scale-110" aria-label="Search">
-            <FiSearch className="h-5 w-5 text-black" />
-          </button>
         </div>
         {/* Desktop Search and Icons */}
-        <div className="relative hidden md:flex items-center">
+        <form onSubmit={handleSearch} className="relative hidden md:flex items-center">
           <input 
             type="text" 
-            placeholder="What are you looking for?" 
+            placeholder="What are you looking for?"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="bg-gray-100 rounded-md px-4 py-2 w-64 text-sm text-black transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:bg-white"
           />
-          <FiSearch className="absolute right-3 top-2.5 text-black" />
-        </div>
+          <button type="submit" className="absolute right-3 top-2.5 text-black">
+            <FiSearch />
+          </button>
+        </form>
         <div className="hidden md:flex items-center gap-4">
           <button className="p-2 transition-transform hover:scale-110 cursor-pointer" aria-label="Wishlist">
             <Link href="/wishlist">
@@ -225,6 +253,30 @@ const Navbar = () => {
           )}
         </div>
       </div>
+
+      {/* Mobile Search Overlay */}
+      {showMobileSearch && (
+        <div className="fixed inset-0 bg-white z-50 md:hidden p-4">
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowMobileSearch(false)} aria-label="Close search">
+              <FiX className="h-6 w-6 text-black" />
+            </button>
+          </div>
+          <form onSubmit={handleSearch} className="flex items-center border-b border-gray-300">
+            <input
+              type="text"
+              placeholder="What are you looking for?"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full py-2 text-black text-lg focus:outline-none"
+              autoFocus
+            />
+            <button type="submit" className="p-2">
+              <FiSearch className="h-6 w-6 text-black" />
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (

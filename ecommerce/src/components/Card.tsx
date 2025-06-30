@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
+import toast from "react-hot-toast";
 
 interface CardProps {
   image: string;
@@ -104,12 +105,13 @@ const Card = ({
       if (isWishlisted) {
         await api.delete(`/api/wishlist/remove/${productId}`);
         if (onRemoveFromWishlist) onRemoveFromWishlist();
+        toast.success('Product removed from wishlist!');
       } else {
         // First check if product is already in wishlist
         const checkResponse = await api.get(`/api/wishlist/check/${productId}`);
         
         if (checkResponse.data.isWishlisted) {
-          alert('This product is already in your wishlist!');
+          toast.error('Product is already in your wishlist.');
           return;
         }
 
@@ -125,11 +127,13 @@ const Card = ({
             discountPercentage,
           }
         });
+        toast.success('Product added to wishlist!');
       }
       setIsWishlisted(!isWishlisted);
       if (onWishlistChange) onWishlistChange();
     } catch (error) {
       console.error('Error toggling wishlist:', error);
+      toast.error('Could not update wishlist. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +157,7 @@ const Card = ({
         reviewCount,
         discountPercentage
       });
-      alert('Cannot add to cart: productId is missing! Please contact support.');
+      toast.error('Could not add to cart: Missing product information.');
       return;
     }
     setIsLoading(true);
@@ -183,17 +187,17 @@ const Card = ({
         }
       });
       setIsInCart(true);
-      alert('Product added to cart!');
+      toast.success('Product added to cart!');
     } catch (error) {
       const axiosError = error as AxiosError;
       if (axiosError.response?.status === 400) {
         setIsInCart(true);
-        alert('Product already in cart!');
+        toast.error('This product is already in your cart.');
       } else if (axiosError.response?.status === 401) {
-        alert('Please login to add items to cart');
+        toast.error('Please log in to manage your cart.');
         router.push('/login');
       } else {
-        alert('Failed to add product to cart');
+        toast.error('Could not add product to cart. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -256,9 +260,9 @@ const Card = ({
       <div className="p-4">
         <h3 className="text-sm font-medium text-black mb-2">{title}</h3>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[#DB4444] font-medium">${price}</span>
+          <span className="text-[#DB4444] font-medium">${price.toFixed(2)}</span>
           {originalPrice && (
-            <span className="text-gray-500 line-through text-sm">${originalPrice}</span>
+            <span className="text-gray-500 line-through text-sm">${originalPrice.toFixed(2)}</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -287,7 +291,7 @@ const Card = ({
           onClick={handleAddToCart}
           disabled={isLoading || isInCart}
           className={`w-full bg-black text-white text-sm py-2 rounded hover:opacity-80 transition-all mt-3 cursor-pointer ${
-            isWishlistItem ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            isWishlistItem ? 'opacity-100' : 'opacity-100 md:opacity-0 group-hover:md:opacity-100'
           }`}
         >
           {isInCart ? 'In Cart' : isLoading ? 'Adding...' : 'Add To Cart'}

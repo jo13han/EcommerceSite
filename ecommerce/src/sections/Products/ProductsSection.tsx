@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getProducts, getProductsByCategory, getCategories } from '@/lib/api';
 import Card from '@/components/Card';
+import toast from 'react-hot-toast';
 
 interface Product {
   _id: string;
@@ -25,10 +26,10 @@ interface Category {
 
 const ProductsSection = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -39,7 +40,7 @@ const ProductsSection = () => {
         const data = await getCategories();
         setCategories(data);
       } catch (err) {
-        setError('Failed to load categories');
+        toast.error('Could not load categories. Please refresh.');
         console.error('Failed to fetch categories:', err);
       }
     };
@@ -48,10 +49,11 @@ const ProductsSection = () => {
   }, []);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchAndFilterProducts = async () => {
       setIsLoading(true);
       try {
         const category = searchParams.get('category');
+        const searchTerm = searchParams.get('search') || '';
         setSelectedCategory(category || '');
         
         const data = category 
@@ -59,15 +61,25 @@ const ProductsSection = () => {
           : await getProducts();
         
         setProducts(data);
+
+        if (searchTerm) {
+          const filtered = data.filter((product: Product) =>
+            product.name.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          setFilteredProducts(filtered);
+        } else {
+          setFilteredProducts(data);
+        }
+
       } catch (err) {
-        setError('Failed to load products');
+        toast.error('Could not load products. Please refresh.');
         console.error('Failed to fetch products:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchAndFilterProducts();
   }, [searchParams]);
 
   const handleCategoryChange = (category: string) => {
@@ -79,14 +91,6 @@ const ProductsSection = () => {
     }
     router.push(`/products?${params.toString()}`);
   };
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-red-500 text-center">{error}</div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -117,7 +121,7 @@ const ProductsSection = () => {
         <div className="text-center py-8">Loading products...</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <Card
               key={product._id}
               productId={product._id}
@@ -133,9 +137,9 @@ const ProductsSection = () => {
         </div>
       )}
 
-      {!isLoading && products.length === 0 && (
+      {!isLoading && filteredProducts.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          No products found in this category.
+          No products found.
         </div>
       )}
     </div>

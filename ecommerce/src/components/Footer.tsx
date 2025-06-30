@@ -30,7 +30,7 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-x-8 gap-y-10 mb-10">
           <div className="text-center sm:text-left">
-            <h3 className="text-xl font-bold mb-6">Exclusive</h3>
+            <h3 className="text-xl font-bold mb-6">ExclusiveIO</h3>
             <p className="mb-4">Subscribe</p>
             <p className="mb-4 text-sm font-light">
               Get 10% off your first order
@@ -68,12 +68,14 @@ const Footer = () => {
           <div className="text-center sm:text-left">
             <h3 className="text-xl font-bold mb-6">Support</h3>
             <p className="mb-4 font-light text-sm">
-              111 Bijoy sarani, Dhaka,
+              456, Park Street,
               <br />
-              DH 1515, Bangladesh.
+              Miami, Florida 33130,
+              <br />
+              United States.
             </p>
-            <p className="mb-4 text-sm font-light">exclusive@gmail.com</p>
-            <p className="text-sm font-light">+88015-88888-9999</p>
+            <p className="mb-4 text-sm font-light">support@exclusiveio.com</p>
+            <p className="text-sm font-light">+91-0000000000</p>
           </div>
 
           <div className="text-center sm:text-left">

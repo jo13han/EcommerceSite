@@ -30,9 +30,12 @@ const userSchema = new mongoose.Schema({
   }],
   sessions: [{
     sessionId: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    userAgent: { type: String }
-  }]
-});
+    userAgent: { type: String },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  photoURL: String,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date
+}, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

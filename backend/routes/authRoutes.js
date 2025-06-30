@@ -1,5 +1,5 @@
 const express = require('express');
-const { signup, login, verifyOtp, resendOtp, googleSignup, googleLogin } = require('../controllers/authController');
+const { signup, login, verifyOtp, resendOtp, googleSignup, googleLogin, forgotPassword, resetPassword } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/userModel');
 
@@ -12,6 +12,8 @@ router.post('/verify-otp', verifyOtp);
 router.post('/resend-otp', resendOtp);
 router.post('/google-signup', googleSignup);
 router.post('/google-login', googleLogin);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
 
 // Protected routes
 router.get('/me', protect, async (req, res) => {

@@ -7,37 +7,41 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import toast from 'react-hot-toast';
+import { AxiosError } from 'axios';
 
 const LoginForm = () => {
   const router = useRouter();
   const { login, setToken, setSessionId, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
       await login(email, password);
+      toast.success('Login Successful!');
       // Force a full client-side reload to update UI
       window.location.href = '/';
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unknown error occurred.');
+      let errorMessage = 'An unknown error occurred.';
+      if (err instanceof AxiosError && err.response?.data?.error) {
+        // Use the specific error message from the backend
+        errorMessage = err.response.data.error;
+      } else if (err instanceof Error) {
+        // Fallback for non-API errors
+        errorMessage = err.message;
       }
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleGoogleLogin = async () => {
-    setError('');
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -61,13 +65,16 @@ const LoginForm = () => {
         setSessionId(res.data.sessionId || null);
         setUser(res.data.user);
       }
+      toast.success('Google Login Successful!');
       router.push('/');
     } catch (error) {
-      let message = 'Unknown error';
-      if (error instanceof Error) {
+      let message = 'An unknown error occurred.';
+      if (error instanceof AxiosError && error.response?.data?.error) {
+        message = error.response.data.error;
+      } else if (error instanceof Error) {
         message = error.message;
       }
-      setError('Google login failed: ' + message);
+      toast.error(`Google Login Failed: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -78,11 +85,6 @@ const LoginForm = () => {
       <div>
         <h2 className="text-3xl sm:text-4xl font-medium text-black mb-6">Log in to Exclusive</h2>
         <p className="text-black mb-12">Enter your details below</p>
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
         <form onSubmit={handleSubmit} className="space-y-12 w-full">
           <div>
             <input

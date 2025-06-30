@@ -8,30 +8,30 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { AxiosError } from 'axios';
+import toast from 'react-hot-toast';
 
 const SignUpForm = () => {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [info, setInfo] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
   const { setToken, setSessionId, setUser } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     try {
       await api.post('/api/auth/signup', { name, email, password });
       setStep(2);
-      setInfo('OTP sent to your email.');
+      toast.success('OTP sent to your email. Please verify.');
     } catch (err) {
-      const axiosError = err as AxiosError<{ error: string }>;
-      setError(axiosError.response?.data?.error || (err as Error).message);
+      const errorMessage = err instanceof AxiosError && err.response?.data?.error 
+        ? err.response.data.error
+        : 'An unknown error occurred.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -39,7 +39,6 @@ const SignUpForm = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
     try {
       const res = await api.post('/api/auth/verify-otp', { email, emailOtp });
@@ -55,33 +54,34 @@ const SignUpForm = () => {
         setSessionId(res.data.sessionId || null);
         setUser(res.data.user);
       }
-      setInfo('Account verified! Redirecting to home...');
+      toast.success('Account Verified Successfully! Redirecting...');
       setTimeout(() => router.push('/'), 1500);
     } catch (err) {
-      const axiosError = err as AxiosError<{ error: string }>;
-      setError(axiosError.response?.data?.error || (err as Error).message);
+      const errorMessage = err instanceof AxiosError && err.response?.data?.error 
+        ? err.response.data.error
+        : 'An unknown error occurred.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
-    setError('');
-    setInfo('');
     setIsLoading(true);
     try {
       await api.post('/api/auth/resend-otp', { email });
-      setInfo('OTP resent to your email.');
+      toast.success('A new OTP has been sent to your email.');
     } catch (err) {
-      const axiosError = err as AxiosError<{ error: string }>;
-      setError(axiosError.response?.data?.error || (err as Error).message);
+      const errorMessage = err instanceof AxiosError && err.response?.data?.error 
+        ? err.response.data.error
+        : 'An unknown error occurred.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
-    setError('');
     setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -106,14 +106,13 @@ const SignUpForm = () => {
         setSessionId(res.data.sessionId || null);
         setUser(res.data.user);
       }
-      setInfo('Signed up with Google: ' + user.email);
+      toast.success(`Google Sign-up Successful!`);
       setTimeout(() => router.push('/'), 1500);
     } catch (error) {
-      let message = 'Unknown error';
-      if (error instanceof Error) {
-        message = error.message;
-      }
-      setError('Google sign-in failed: ' + message);
+      const message = error instanceof AxiosError && error.response?.data?.error
+        ? error.response.data.error
+        : 'An unknown error occurred.';
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -125,17 +124,6 @@ const SignUpForm = () => {
         <h2 className="text-3xl sm:text-4xl mb-6 text-black">Create an account</h2>
         <p className="mb-12 text-black">{step === 1 ? 'Enter your details below' : 'Enter the OTP sent to your email'}</p>
         
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-        {info && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-            {info}
-          </div>
-        )}
-
         {step === 1 ? (
         <form onSubmit={handleSubmit} className="space-y-12 w-full">
           <div>
