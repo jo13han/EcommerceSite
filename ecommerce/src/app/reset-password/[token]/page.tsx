@@ -1,17 +1,19 @@
 import ResetPasswordForm from '@/sections/Login/ResetPasswordForm';
 
-export default function ResetPasswordPage({ params }: unknown) {
-  // Type-narrowing for params
+export default function ResetPasswordPage(props: unknown) {
+  // Type-narrowing for props and params
   if (
-    !params ||
-    typeof params !== 'object' ||
-    !('token' in params) ||
-    typeof (params as { token?: unknown }).token !== 'string'
+    !props ||
+    typeof props !== 'object' ||
+    !('params' in props) ||
+    typeof (props as { params?: unknown }).params !== 'object' ||
+    !('token' in (props as { params: unknown }).params) ||
+    typeof ((props as { params: { token?: unknown } }).params.token) !== 'string'
   ) {
     return <div>Invalid token</div>;
   }
 
-  const { token } = params as { token: string };
+  const token = (props as { params: { token: string } }).params.token;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
