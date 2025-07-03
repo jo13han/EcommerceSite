@@ -37,7 +37,6 @@ const SignUpForm = () => {
     register: registerSignup,
     handleSubmit: handleSignupSubmit,
     formState: { errors: signupErrors },
-    getValues: getSignupValues,
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
   });
@@ -47,7 +46,6 @@ const SignUpForm = () => {
     register: registerOtp,
     handleSubmit: handleOtpSubmit,
     formState: { errors: otpErrors },
-    setValue: setOtpValue,
   } = useForm<OtpFormValues>({
     resolver: zodResolver(otpSchema),
   });

@@ -26,8 +26,7 @@ const WishlistSection = () => {
   const {
     data: wishlistProducts = [],
     isLoading,
-    isError,
-    error
+    isError
   } = useQuery<Product[]>({
     queryKey: ['wishlist'],
     queryFn: async () => {

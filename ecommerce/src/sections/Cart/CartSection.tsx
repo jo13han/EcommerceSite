@@ -28,8 +28,7 @@ const CartSection = () => {
   const {
     data: cartItems = [],
     isLoading,
-    isError,
-    error
+    isError
   } = useQuery<CartItem[]>({
     queryKey: ['cart'],
     queryFn: async () => {

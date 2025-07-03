@@ -27,7 +27,6 @@ interface Category {
 
 const ProductsSection = () => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -49,8 +48,7 @@ const ProductsSection = () => {
   const {
     data: products = [],
     isLoading,
-    isError,
-    error
+    isError
   } = useQuery({
     queryKey: ['products', searchParams.get('category'), searchParams.get('search')],
     queryFn: async () => {
@@ -86,7 +84,7 @@ const ProductsSection = () => {
           </label>
           <select
             id="category"
-            value={selectedCategory}
+            value={searchParams.get('category') || ''}
             onChange={(e) => handleCategoryChange(e.target.value)}
             className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:border-transparent"
           >
@@ -107,7 +105,7 @@ const ProductsSection = () => {
         <div className="text-center py-8 text-red-500">Could not load products.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
+          {products.map((product: Product) => (
             <Card
               key={product._id}
               productId={product._id}
