@@ -6,6 +6,7 @@ import ClientNavbar from "@/components/ClientNavbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "react-hot-toast";
+import ReactQueryProvider from '@/components/ReactQueryProvider';
 
 const poppins = Poppins({
   weight: ['200', '300', '400', '500', '600', '700'],
@@ -31,15 +32,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.className}>
-        <AuthProvider>
-          <Toaster position="top-center" reverseOrder={false} />
-          <AnnouncementBar message="Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!" />
-          <ClientNavbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
-        </AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <Toaster position="top-center" reverseOrder={false} />
+            <AnnouncementBar message="Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!" />
+            <ClientNavbar />
+            <main className="min-h-screen">
+              {children}
+            </main>
+            <Footer />
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

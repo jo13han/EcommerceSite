@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
 import Card from '@/components/Card';
 import 'keen-slider/keen-slider.min.css';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { AxiosError } from 'axios';
+import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Product {
   productId: string;
@@ -19,49 +19,41 @@ interface Product {
 }
 
 const WishlistSection = () => {
-  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
+  const queryClient = useQueryClient();
 
-  const fetchWishlist = useCallback(async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    try {
+  // Fetch wishlist
+  const {
+    data: wishlistProducts = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery<Product[]>({
+    queryKey: ['wishlist'],
+    queryFn: async () => {
+      if (!token) return [];
       const response = await api.get('/api/wishlist');
-      const products = Array.isArray(response.data)
+      return Array.isArray(response.data)
         ? response.data.map(item => item.product || item)
         : [];
-      setWishlistProducts(products);
-      setError(null);
-    } catch {
-      setError('Failed to fetch wishlist');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token]);
+    },
+    enabled: !!token,
+  });
 
-  useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
-
-  const handleRemoveFromWishlist = async (productId: string) => {
-    if (!token) return;
-
-    try {
+  // Remove from wishlist
+  const removeMutation = useMutation({
+    mutationFn: async (productId: string) => {
       await api.delete(`/api/wishlist/remove/${productId}`);
-      setWishlistProducts(prev => prev.filter(p => p.productId !== productId));
-      setError(null);
-    } catch (error) {
-      const axiosError = error as AxiosError<{ error: string }>;
-      console.error('Error removing from wishlist:', axiosError.response?.data || (error as Error).message);
-      setError(axiosError.response?.data?.error || 'Failed to remove from wishlist');
-    }
-  };
-
-  // ... rest of your component code ...
+      return productId;
+    },
+    onSuccess: (productId: string) => {
+      queryClient.setQueryData(['wishlist'], (old: Product[] = []) => old.filter(p => p.productId !== productId));
+      toast.success('Item removed from wishlist');
+    },
+    onError: () => {
+      toast.error('Failed to remove from wishlist');
+    },
+  });
 
   if (isLoading) {
     return (
@@ -78,12 +70,12 @@ const WishlistSection = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+          <span className="block sm:inline">Failed to fetch wishlist</span>
         </div>
       </div>
     );
@@ -117,8 +109,8 @@ const WishlistSection = () => {
                   reviewCount={product.reviewCount}
                   discountPercentage={product.discountPercentage ? Math.round(product.discountPercentage) : undefined}
                   isWishlistItem={true}
-                  onRemoveFromWishlist={() => handleRemoveFromWishlist(String(product.productId ?? product.id ?? ''))}
-                  onWishlistChange={fetchWishlist}
+                  onRemoveFromWishlist={() => removeMutation.mutate(String(product.productId ?? product.id ?? ''))}
+                  onWishlistChange={() => queryClient.invalidateQueries({ queryKey: ['wishlist'] })}
                 />
               ))}
             </div>

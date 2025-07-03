@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import Image from 'next/image';
 import { FiTrash2, FiMinus, FiPlus } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
-import { AxiosError } from 'axios';
+import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface CartItem {
   productId: string;
@@ -20,63 +20,56 @@ interface CartItem {
 }
 
 const CartSection = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { token } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const fetchCart = useCallback(async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    try {
+  // Fetch cart
+  const {
+    data: cartItems = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery<CartItem[]>({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      if (!token) return [];
       const response = await api.get('/api/cart');
-      setCartItems(response.data);
-      setError(null);
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      setError('Failed to fetch cart');
-      console.error('Error fetching cart:', axiosError);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token]);
+      return response.data;
+    },
+    enabled: !!token,
+  });
 
-  useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
-
-  const handleRemoveFromCart = async (productId: string) => {
-    if (!token) return;
-
-    try {
+  // Remove from cart
+  const removeMutation = useMutation({
+    mutationFn: async (productId: string) => {
       await api.delete(`/api/cart/remove/${productId}`);
-      setCartItems(prev => prev.filter(item => item.productId !== productId));
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      setError('Failed to remove item from cart');
-    }
-  };
+      return productId;
+    },
+    onSuccess: (productId: string) => {
+      queryClient.setQueryData(['cart'], (old: CartItem[] = []) => old.filter(item => item.productId !== productId));
+      toast.success('Item removed from cart');
+    },
+    onError: () => {
+      toast.error('Failed to remove item from cart');
+    },
+  });
 
-  const handleUpdateQuantity = async (productId: string, newQuantity: number) => {
-    if (!token || newQuantity < 1) return;
-
-    try {
-      await api.put(`/api/cart/update/${productId}`, 
-        { quantity: newQuantity }
+  // Update quantity
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ productId, newQuantity }: { productId: string; newQuantity: number }) => {
+      await api.put(`/api/cart/update/${productId}`, { quantity: newQuantity });
+      return { productId, newQuantity };
+    },
+    onSuccess: ({ productId, newQuantity }) => {
+      queryClient.setQueryData(['cart'], (old: CartItem[] = []) =>
+        old.map(item => item.productId === productId ? { ...item, quantity: newQuantity } : item)
       );
-      setCartItems(prev => prev.map(item => 
-        item.productId === productId 
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      setError('Failed to update quantity');
-    }
-  };
+    },
+    onError: () => {
+      toast.error('Failed to update quantity');
+    },
+  });
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
@@ -99,12 +92,12 @@ const CartSection = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="container mx-auto px-4">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+          <span className="block sm:inline">Failed to fetch cart</span>
         </div>
       </div>
     );
@@ -113,7 +106,6 @@ const CartSection = () => {
   return (
     <div className="container mx-auto px-4">
       <h1 className="text-3xl font-medium text-black mb-8">Shopping Cart ({cartItems.length})</h1>
-      
       {cartItems.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Your cart is empty</p>
@@ -136,30 +128,32 @@ const CartSection = () => {
                   <p className="text-[#DB4444] font-medium">${item.price}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
+                      onClick={() => updateQuantityMutation.mutate({ productId: item.productId, newQuantity: item.quantity - 1 })}
                       className="p-1 hover:bg-gray-100 rounded"
+                      disabled={updateQuantityMutation.status === 'pending'}
                     >
                       <FiMinus className="h-4 w-4" />
                     </button>
                     <span className="w-8 text-center">{item.quantity}</span>
                     <button
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
+                      onClick={() => updateQuantityMutation.mutate({ productId: item.productId, newQuantity: item.quantity + 1 })}
                       className="p-1 hover:bg-gray-100 rounded"
+                      disabled={updateQuantityMutation.status === 'pending'}
                     >
                       <FiPlus className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
                 <button
-                  onClick={() => handleRemoveFromCart(item.productId)}
+                  onClick={() => removeMutation.mutate(item.productId)}
                   className="p-2 hover:bg-gray-100 rounded"
+                  disabled={removeMutation.status === 'pending'}
                 >
                   <FiTrash2 className="h-5 w-5 text-red-500 cursor-pointer" />
                 </button>
               </div>
             ))}
           </div>
-          
           <div className="lg:col-span-1 text-black">
             <div className="border rounded-lg p-6">
               <h2 className="text-xl font-medium mb-4">Order Summary</h2>

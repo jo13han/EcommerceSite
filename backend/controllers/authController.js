@@ -410,3 +410,19 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while resetting the password.' });
   }
 };
+
+exports.getProfile = async (req, res) => {
+  try {
+    // req.user is set by the protect middleware
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({
+      firstName: user.name?.split(' ')[0] || '',
+      lastName: user.name?.split(' ').slice(1).join(' ') || '',
+      email: user.email,
+      address: user.address || '',
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+};

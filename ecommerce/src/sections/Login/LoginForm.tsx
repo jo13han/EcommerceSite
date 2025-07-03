@@ -1,65 +1,63 @@
 'use client';
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import toast from 'react-hot-toast';
-import { AxiosError } from 'axios';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation } from '@tanstack/react-query';
+
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Invalid email address' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
   const router = useRouter();
   const { login, setToken, setSessionId, setUser } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
 
-    try {
-      await login(email, password);
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormValues) => {
+      // Use your context login for side effects, but return API data for error handling
+      await login(data.email, data.password);
+    },
+    onSuccess: () => {
       toast.success('Login Successful!');
-      // Force a full client-side reload to update UI
       window.location.href = '/';
-    } catch (err) {
-      let errorMessage = 'An unknown error occurred.';
-      if (err instanceof AxiosError && err.response?.data?.error) {
-        // Use the specific error message from the backend
-        errorMessage = err.response.data.error;
-      } else if (err instanceof Error) {
-        // Fallback for non-API errors
-        errorMessage = err.message;
-      }
+    },
+    onError: (err: any) => {
+      const errorMessage = err?.response?.data?.error || err?.message || 'Login failed';
       toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+    },
+  });
+
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      // Send user info to backend to login
       const res = await api.post('/api/auth/google-login', {
         email: user.email,
         googleId: user.uid,
       });
-      // Save token and sessionId (if returned) and update AuthContext
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
       }
       if (res.data.sessionId) {
         localStorage.setItem('sessionId', res.data.sessionId);
       }
-      // Update AuthContext state
       if (res.data.token && res.data.user) {
         setToken(res.data.token);
         setSessionId(res.data.sessionId || null);
@@ -67,66 +65,59 @@ const LoginForm = () => {
       }
       toast.success('Google Login Successful!');
       router.push('/');
-    } catch (error) {
-      let message = 'An unknown error occurred.';
-      if (error instanceof AxiosError && error.response?.data?.error) {
-        message = error.response.data.error;
-      } else if (error instanceof Error) {
-        message = error.message;
-      }
-      toast.error(`Google Login Failed: ${message}`);
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || error?.message || 'Google Login Failed';
+      toast.error(message);
     }
   };
-  
+
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <div>
-        <h2 className="text-3xl sm:text-4xl font-medium text-black mb-6">Log in to Exclusive</h2>
+        <h2 className="text-3xl sm:text-4xl font-medium text-black mb-6">Log in to ExclusiveIO</h2>
         <p className="text-black mb-12">Enter your details below</p>
-        <form onSubmit={handleSubmit} className="space-y-12 w-full">
+        <form onSubmit={handleSubmit((data) => loginMutation.mutate(data))} className="space-y-12 w-full">
           <div>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register('email')}
               placeholder="Email"
               className="w-full border-b border-gray-300 py-2 text-gray-400 focus:outline-none focus:border-[#DB4444]"
               required
             />
+            {errors.email && <span className="text-red-500 text-xs">{errors.email.message}</span>}
           </div>
           <div>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...register('password')}
               placeholder="Password"
               className="w-full border-b border-gray-300 py-2 text-gray-400 focus:outline-none focus:border-[#DB4444]"
               required
             />
+            {errors.password && <span className="text-red-500 text-xs">{errors.password.message}</span>}
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
             <button 
               type="submit"
-              disabled={isLoading}
+              disabled={loginMutation.status === 'pending'}
               className={`w-full sm:w-auto bg-[#DB4444] text-white py-3 px-8 rounded hover:bg-[#c03a3a] transition-colors ${
-                isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                loginMutation.status === 'pending' ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
-              {isLoading ? 'Logging in...' : 'Log In'}
+              {loginMutation.status === 'pending' ? 'Logging in...' : 'Log In'}
             </button>
-            <Link href="/forgot-password" className="text-[#DB4444] hover:underline">
+            <a href="/forgot-password" className="text-[#DB4444] hover:underline">
               Forget Password?
-            </Link>
+            </a>
           </div>
         </form>
       </div>
       <div className="mt-8 flex flex-col sm:flex-row items-center gap-2">
         <span className="text-black">Don&apos;t have an account? </span>
-        <Link href="/signup" className="text-[#DB4444] hover:underline">
+        <a href="/signup" className="text-[#DB4444] hover:underline">
           Sign Up
-        </Link>
+        </a>
       </div>
       <div className="mt-4">
         <button
@@ -134,7 +125,7 @@ const LoginForm = () => {
           onClick={handleGoogleLogin}
           className="flex items-center justify-center w-full border border-gray-300 py-3 rounded mb-3 text-black"
         >
-          <Image src="/images/login/google-icon.svg" width={20} height={20} alt="Google" className="mr-2" />
+          <img src="/images/login/google-icon.svg" width={20} height={20} alt="Google" className="mr-2" />
           Login with Google
         </button>
       </div>

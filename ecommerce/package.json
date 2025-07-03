@@ -9,15 +9,19 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
+    "@tanstack/react-query": "^5.81.5",
     "axios": "^1.9.0",
     "firebase": "^11.9.1",
     "keen-slider": "^6.8.6",
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.59.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
-    "twilio": "^5.7.1"
+    "twilio": "^5.7.1",
+    "zod": "^3.25.71"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

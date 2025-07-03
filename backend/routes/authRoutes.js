@@ -1,5 +1,5 @@
 const express = require('express');
-const { signup, login, verifyOtp, resendOtp, googleSignup, googleLogin, forgotPassword, resetPassword } = require('../controllers/authController');
+const { signup, login, verifyOtp, resendOtp, googleSignup, googleLogin, forgotPassword, resetPassword, getProfile } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/userModel');
 
@@ -16,6 +16,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 
 // Protected routes
+router.get('/profile', protect, getProfile);
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');

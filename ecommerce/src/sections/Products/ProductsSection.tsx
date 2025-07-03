@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getProducts, getProductsByCategory, getCategories } from '@/lib/api';
 import Card from '@/components/Card';
 import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 
 interface Product {
   _id: string;
@@ -25,16 +26,13 @@ interface Category {
 }
 
 const ProductsSection = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Fetch categories (can also be migrated to useQuery if desired)
   useEffect(() => {
-    // Fetch categories
     const fetchCategories = async () => {
       try {
         const data = await getCategories();
@@ -44,43 +42,29 @@ const ProductsSection = () => {
         console.error('Failed to fetch categories:', err);
       }
     };
-
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    const fetchAndFilterProducts = async () => {
-      setIsLoading(true);
-      try {
-        const category = searchParams.get('category');
-        const searchTerm = searchParams.get('search') || '';
-        setSelectedCategory(category || '');
-        
-        const data = category 
-          ? await getProductsByCategory(category)
-          : await getProducts();
-        
-        setProducts(data);
-
-        if (searchTerm) {
-          const filtered = data.filter((product: Product) =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-          setFilteredProducts(filtered);
-        } else {
-          setFilteredProducts(data);
-        }
-
-      } catch (err) {
-        toast.error('Could not load products. Please refresh.');
-        console.error('Failed to fetch products:', err);
-      } finally {
-        setIsLoading(false);
+  // Fetch products with useQuery
+  const {
+    data: products = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery({
+    queryKey: ['products', searchParams.get('category'), searchParams.get('search')],
+    queryFn: async () => {
+      const category = searchParams.get('category');
+      const searchTerm = searchParams.get('search') || '';
+      let data = category ? await getProductsByCategory(category) : await getProducts();
+      if (searchTerm) {
+        data = data.filter((product: Product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
       }
-    };
-
-    fetchAndFilterProducts();
-  }, [searchParams]);
+      return data;
+    },
+  });
 
   const handleCategoryChange = (category: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -119,9 +103,11 @@ const ProductsSection = () => {
       {/* Products Grid */}
       {isLoading ? (
         <div className="text-center py-8">Loading products...</div>
+      ) : isError ? (
+        <div className="text-center py-8 text-red-500">Could not load products.</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
+          {products.map((product) => (
             <Card
               key={product._id}
               productId={product._id}
@@ -137,7 +123,7 @@ const ProductsSection = () => {
         </div>
       )}
 
-      {!isLoading && filteredProducts.length === 0 && (
+      {!isLoading && !isError && products.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No products found.
         </div>

@@ -1,9 +1,13 @@
 "use client";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
-import { AxiosError } from "axios";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import toast from 'react-hot-toast';
 
 const paymentIcons = [
   "/images/billing/bkash.png",
@@ -20,33 +24,80 @@ interface CartItem {
   quantity: number;
 }
 
+const billingSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  companyName: z.string().optional(),
+  street: z.string().min(1, 'Street address is required'),
+  apartment: z.string().optional(),
+  city: z.string().min(1, 'City is required'),
+  saveInfo: z.boolean().optional(),
+});
+
+const couponSchema = z.object({
+  coupon: z.string().min(1, 'Coupon code is required'),
+});
+
 export default function BillingSection() {
   const [payment, setPayment] = useState("cod");
   const { token } = useAuth();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchCart = async () => {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        const response = await api.get('/api/cart');
-        setCartItems(response.data);
-        setError(null);
-      } catch (error) {
-        const axiosError = error as AxiosError;
-        setError('Failed to fetch cart');
-        console.error('Error fetching cart:', axiosError);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchCart();
-  }, [token]);
+  // Fetch cart
+  const {
+    data: cartItems = [],
+    isLoading,
+    isError,
+    error
+  } = useQuery<CartItem[]>({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      if (!token) return [];
+      const response = await api.get('/api/cart');
+      return response.data;
+    },
+    enabled: !!token,
+  });
+
+  // Billing form
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(billingSchema),
+  });
+
+  // Coupon form
+  const { register: registerCoupon, handleSubmit: handleCouponSubmit, formState: { errors: couponErrors }, reset: resetCoupon } = useForm({
+    resolver: zodResolver(couponSchema),
+  });
+
+  // Place order mutation
+  const placeOrderMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await api.post('/api/order', { ...data, payment });
+    },
+    onSuccess: () => {
+      toast.success('Order placed successfully!');
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+    onError: (err: any) => {
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to place order';
+      toast.error(errorMessage);
+    },
+  });
+
+  // Apply coupon mutation
+  const couponMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await api.post('/api/cart/apply-coupon', data);
+    },
+    onSuccess: () => {
+      toast.success('Coupon applied!');
+      resetCoupon();
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+    onError: (err: any) => {
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to apply coupon';
+      toast.error(errorMessage);
+    },
+  });
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
@@ -72,31 +123,37 @@ export default function BillingSection() {
         {/* Billing Form */}
         <div className="flex-1">
           <h2 className="text-3xl mb-8 text-black">Billing Details</h2>
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit((data) => placeOrderMutation.mutate(data))}>
             <div>
               <label className="block mb-2 text-black">First Name<span className="text-[#DB4444]">*</span></label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black " required />
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black " {...register('firstName')} required />
+              {errors.firstName && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
             </div>
             <div>
               <label className="block mb-2 text-black">Company Name</label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" />
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('companyName')} />
             </div>
             <div>
               <label className="block mb-2 text-black">Street Address<span className="text-[#DB4444]">*</span></label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" required />
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('street')} required />
+              {errors.street && <span className="text-red-500 text-xs">{errors.street.message}</span>}
             </div>
             <div>
               <label className="block  mb-2 text-black">Apartment, floor, etc. (optional)</label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" />
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('apartment')} />
             </div>
             <div>
               <label className="block  mb-2 text-black">Town/City<span className="text-[#DB4444]">*</span></label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" required />
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('city')} required />
+              {errors.city && <span className="text-red-500 text-xs">{errors.city.message}</span>}
             </div>
             <div className="flex items-center mt-2">
-              <input type="checkbox" id="save-info" className="accent-[#DB4444] w-5 h-5 mr-2" />
+              <input type="checkbox" id="save-info" className="accent-[#DB4444] w-5 h-5 mr-2" {...register('saveInfo')} />
               <label htmlFor="save-info" className="text-black select-none">Save this information for faster check-out next time</label>
             </div>
+            <button className="w-full md:w-1/2 bg-[#DB4444] text-white py-4 rounded mt-2 md:mt-4 hover:opacity-90 transition-opacity text-lg font-medium" type="submit" disabled={placeOrderMutation.status === 'pending'}>
+              {placeOrderMutation.status === 'pending' ? 'Placing Order...' : 'Place Order'}
+            </button>
           </form>
         </div>
         {/* Order Summary */}
@@ -106,8 +163,8 @@ export default function BillingSection() {
             <div className="space-y-4">
               {isLoading ? (
                 <div className="text-gray-500">Loading cart...</div>
-              ) : error ? (
-                <div className="text-red-500">{error}</div>
+              ) : isError ? (
+                <div className="text-red-500">Failed to fetch cart</div>
               ) : cartItems.length === 0 ? (
                 <div className="text-gray-500">Your cart is empty</div>
               ) : (
@@ -143,11 +200,13 @@ export default function BillingSection() {
               </div>
             </div>
             {/* Coupon & Place Order Buttons Responsive */}
-            <div className="flex flex-col md:flex-row gap-2 mt-4">
-              <input type="text" placeholder="Coupon Code" className="border rounded px-4 py-3 flex-1 text-black w-full md:w-auto" />
-              <button className="bg-[#DB4444] text-white px-8 py-3 rounded hover:opacity-90 transition-opacity w-full md:w-auto">Apply Coupon</button>
-            </div>
-            <button className="w-full md:w-1/2 bg-[#DB4444] text-white py-4 rounded mt-2 md:mt-4 hover:opacity-90 transition-opacity text-lg font-medium">Place Order</button>
+            <form className="flex flex-col md:flex-row gap-2 mt-4" onSubmit={handleCouponSubmit((data) => couponMutation.mutate(data))}>
+              <input type="text" placeholder="Coupon Code" className="border rounded px-4 py-3 flex-1 text-black w-full md:w-auto" {...registerCoupon('coupon')} />
+              <button className="bg-[#DB4444] text-white px-8 py-3 rounded hover:opacity-90 transition-opacity w-full md:w-auto" type="submit" disabled={couponMutation.status === 'pending'}>
+                {couponMutation.status === 'pending' ? 'Applying...' : 'Apply Coupon'}
+              </button>
+              {couponErrors.coupon && <span className="text-red-500 text-xs">{couponErrors.coupon.message}</span>}
+            </form>
           </div>
         </div>
       </div>
