@@ -1,4 +1,4 @@
-import type { Metadata, PageProps } from 'next';
+import type { PageProps } from 'next';
 import ResetPasswordForm from '@/sections/Login/ResetPasswordForm';
 
 interface ResetPasswordPageProps extends PageProps {
