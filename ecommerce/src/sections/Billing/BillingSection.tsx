@@ -70,22 +70,24 @@ export default function BillingSection() {
 
   // Place order mutation
   const placeOrderMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       await api.post('/api/order', { ...data, payment });
     },
     onSuccess: () => {
       toast.success('Order placed successfully!');
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to place order';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Failed to place order';
       toast.error(errorMessage);
     },
   });
 
   // Apply coupon mutation
   const couponMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       await api.post('/api/cart/apply-coupon', data);
     },
     onSuccess: () => {
@@ -93,8 +95,10 @@ export default function BillingSection() {
       resetCoupon();
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to apply coupon';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Failed to apply coupon';
       toast.error(errorMessage);
     },
   });

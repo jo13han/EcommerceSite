@@ -62,8 +62,10 @@ const SignUpForm = () => {
       setStep(2);
       toast.success('OTP sent to your email. Please verify.');
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Signup failed';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Signup failed';
       toast.error(errorMessage);
     },
   });
@@ -88,8 +90,10 @@ const SignUpForm = () => {
       toast.success('Account Verified Successfully! Redirecting...');
       setTimeout(() => router.push('/'), 1500);
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'OTP verification failed';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'OTP verification failed';
       toast.error(errorMessage);
     },
   });
@@ -102,8 +106,10 @@ const SignUpForm = () => {
     onSuccess: () => {
       toast.success('A new OTP has been sent to your email.');
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to resend OTP';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Failed to resend OTP';
       toast.error(errorMessage);
     },
   });
@@ -135,8 +141,10 @@ const SignUpForm = () => {
       }
       toast.success(`Google Sign-up Successful!`);
       setTimeout(() => router.push('/'), 1500);
-    } catch (error: any) {
-      const message = error?.response?.data?.error || error?.message || 'Google Sign-up Failed';
+    } catch (error: unknown) {
+      const message = (error as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (error as { message?: string })?.message
+        || 'Google Sign-up Failed';
       toast.error(message);
     } finally {
       setGoogleLoading(false);

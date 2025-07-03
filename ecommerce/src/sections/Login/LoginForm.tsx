@@ -37,8 +37,10 @@ const LoginForm = () => {
       toast.success('Login Successful!');
       window.location.href = '/';
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Login failed';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Login failed';
       toast.error(errorMessage);
     },
   });
@@ -65,8 +67,10 @@ const LoginForm = () => {
       }
       toast.success('Google Login Successful!');
       router.push('/');
-    } catch (error: any) {
-      const message = error?.response?.data?.error || error?.message || 'Google Login Failed';
+    } catch (error: unknown) {
+      const message = (error as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (error as { message?: string })?.message
+        || 'Google Login Failed';
       toast.error(message);
     }
   };

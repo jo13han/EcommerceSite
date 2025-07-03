@@ -62,8 +62,10 @@ export default function AccountSection() {
       toast.success('Password changed successfully!');
       reset();
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to change password';
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
+        || (err as { message?: string })?.message
+        || 'Failed to change password';
       toast.error(errorMessage);
     },
   });
