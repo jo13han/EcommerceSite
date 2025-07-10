@@ -128,18 +128,18 @@ const CartSection = () => {
                   <div className="flex items-center gap-2 mt-2">
                     <button
                       onClick={() => updateQuantityMutation.mutate({ productId: item.productId, newQuantity: item.quantity - 1 })}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-gray-100 rounded text-black"
                       disabled={updateQuantityMutation.status === 'pending'}
                     >
-                      <FiMinus className="h-4 w-4" />
+                      <FiMinus className="h-4 w-4 text-black" />
                     </button>
-                    <span className="w-8 text-center">{item.quantity}</span>
+                    <span className="w-8 text-center text-black">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantityMutation.mutate({ productId: item.productId, newQuantity: item.quantity + 1 })}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-gray-100 rounded text-black"
                       disabled={updateQuantityMutation.status === 'pending'}
                     >
-                      <FiPlus className="h-4 w-4" />
+                      <FiPlus className="h-4 w-4 text-black" />
                     </button>
                   </div>
                 </div>

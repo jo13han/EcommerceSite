@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import toast from 'react-hot-toast';
+import React from 'react';
 
 const paymentIcons = [
   "/images/billing/bkash.png",
@@ -28,7 +29,7 @@ const billingSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   companyName: z.string().optional(),
   street: z.string().min(1, 'Street address is required'),
-  apartment: z.string().optional(),
+  apartment: z.string().min(1, 'Apartment is required'),
   city: z.string().min(1, 'City is required'),
   saveInfo: z.boolean().optional(),
 });
@@ -39,8 +40,13 @@ const couponSchema = z.object({
 
 export default function BillingSection() {
   const [payment, setPayment] = useState("cod");
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
+  const [bankMsg, setBankMsg] = useState("");
+  const [redirect, setRedirect] = useState(false);
+
+  // Prefill billing info from localStorage
+  const savedInfo = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('billingInfo') || '{}') : {};
 
   // Fetch cart
   const {
@@ -58,9 +64,17 @@ export default function BillingSection() {
   });
 
   // Billing form
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm({
     resolver: zodResolver(billingSchema),
+    defaultValues: savedInfo,
   });
+
+  // Prefill on mount
+  React.useEffect(() => {
+    if (savedInfo) {
+      Object.entries(savedInfo).forEach(([key, value]) => setValue(key, value));
+    }
+  }, []);
 
   // Coupon form
   const { register: registerCoupon, handleSubmit: handleCouponSubmit, formState: { errors: couponErrors }, reset: resetCoupon } = useForm({
@@ -69,12 +83,40 @@ export default function BillingSection() {
 
   // Place order mutation
   const placeOrderMutation = useMutation({
-    mutationFn: async (data: Record<string, unknown>) => {
-      await api.post('/api/order', { ...data, payment });
+    mutationFn: async (data: Record<string, any>) => {
+      if (payment === 'bank') {
+        setBankMsg('We are working on adding card transactions.');
+        throw new Error('Bank payment not supported');
+      }
+      setBankMsg("");
+      await api.post('/api/orders', {
+        userId: user?._id,
+        firstName: data.firstName,
+        streetAddress: data.street,
+        town: data.city,
+        apartment: data.apartment,
+        products: cartItems.map((item: any) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        paymentMethod: payment,
+      });
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Save info if checked
+      if (variables.saveInfo) {
+        localStorage.setItem('billingInfo', JSON.stringify(variables));
+      }
       toast.success('Order placed successfully!');
+      // Clear the cart after order
+      try {
+        await api.delete('/api/cart/clear');
+      } catch (e) {
+        // Ignore errors, just try to clear
+      }
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      setRedirect(true);
     },
     onError: (err: unknown) => {
       const errorMessage = (err as { response?: { data?: { error?: string } }, message?: string })?.response?.data?.error
@@ -108,6 +150,13 @@ export default function BillingSection() {
     }, 0);
   };
 
+  if (redirect) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/order-confirmation';
+    }
+    return null;
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       {/* Breadcrumb */}
@@ -130,7 +179,7 @@ export default function BillingSection() {
             <div>
               <label className="block mb-2 text-black">First Name<span className="text-[#DB4444]">*</span></label>
               <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black " {...register('firstName')} required />
-              {errors.firstName && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
+              {errors.firstName && typeof errors.firstName.message === 'string' && <span className="text-red-500 text-xs">{errors.firstName.message}</span>}
             </div>
             <div>
               <label className="block mb-2 text-black">Company Name</label>
@@ -139,16 +188,17 @@ export default function BillingSection() {
             <div>
               <label className="block mb-2 text-black">Street Address<span className="text-[#DB4444]">*</span></label>
               <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('street')} required />
-              {errors.street && <span className="text-red-500 text-xs">{errors.street.message}</span>}
+              {errors.street && typeof errors.street.message === 'string' && <span className="text-red-500 text-xs">{errors.street.message}</span>}
             </div>
             <div>
-              <label className="block  mb-2 text-black">Apartment, floor, etc. (optional)</label>
-              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('apartment')} />
+              <label className="block  mb-2 text-black">Apartment, floor, etc. (required)<span className="text-[#DB4444]">*</span></label>
+              <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('apartment')} required />
+              {errors.apartment && typeof errors.apartment.message === 'string' && <span className="text-red-500 text-xs">{errors.apartment.message}</span>}
             </div>
             <div>
               <label className="block  mb-2 text-black">Town/City<span className="text-[#DB4444]">*</span></label>
               <input className="w-full bg-gray-50 border rounded px-4 py-3 outline-none text-black" {...register('city')} required />
-              {errors.city && <span className="text-red-500 text-xs">{errors.city.message}</span>}
+              {errors.city && typeof errors.city.message === 'string' && <span className="text-red-500 text-xs">{errors.city.message}</span>}
             </div>
             <div className="flex items-center mt-2">
               <input type="checkbox" id="save-info" className="accent-[#DB4444] w-5 h-5 mr-2" {...register('saveInfo')} />
@@ -157,6 +207,9 @@ export default function BillingSection() {
             <button className="w-full md:w-1/2 bg-[#DB4444] text-white py-4 rounded mt-2 md:mt-4 hover:opacity-90 transition-opacity text-lg font-medium" type="submit" disabled={placeOrderMutation.status === 'pending'}>
               {placeOrderMutation.status === 'pending' ? 'Placing Order...' : 'Place Order'}
             </button>
+            {bankMsg && payment === 'bank' && (
+              <div className="text-red-500 text-sm mt-2">{bankMsg}</div>
+            )}
           </form>
         </div>
         {/* Order Summary */}

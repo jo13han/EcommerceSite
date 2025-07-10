@@ -8,6 +8,7 @@ import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface CardProps {
   image: string;
@@ -47,6 +48,17 @@ const Card = ({
   const [isInCart, setIsInCart] = useState(false);
   const { token } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  // Subscribe to cart query for reactive updates
+  const { data: cartItems = [] } = useQuery<any[]>({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      if (!token) return [];
+      const response = await api.get('/api/cart');
+      return response.data;
+    },
+    enabled: !!token,
+  });
 
   // Log props when component mounts
   useEffect(() => {
@@ -82,21 +94,18 @@ const Card = ({
     checkWishlistStatus();
   }, [productId, token, title]);
 
-  // Check if product is in cart when component mounts
+  // Reactively update isInCart when cartItems or productId changes
   useEffect(() => {
-    const checkCartStatus = async () => {
-      if (!token || !productId) return;
-      try {
-        const response = await api.get('/api/cart');
-        const cartItems = Array.isArray(response.data) ? response.data : [];
-        const found = cartItems.some(item => item.product && item.product.productId === productId);
-        setIsInCart(found);
-      } catch {
-        // Optionally handle error
-      }
-    };
-    checkCartStatus();
-  }, [productId, token]);
+    if (!productId || !cartItems) return;
+    const found = cartItems.some((item: any) => {
+      return (
+        item.productId === productId ||
+        (item.product && item.product.productId === productId) ||
+        item._id === productId
+      );
+    });
+    setIsInCart(found);
+  }, [cartItems, productId]);
 
   const handleWishlistToggle = async () => {
     if (!token) return;
@@ -106,6 +115,7 @@ const Card = ({
         await api.delete(`/api/wishlist/remove/${productId}`);
         if (onRemoveFromWishlist) onRemoveFromWishlist();
         toast.success('Product removed from wishlist!');
+        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
       } else {
         // First check if product is already in wishlist
         const checkResponse = await api.get(`/api/wishlist/check/${productId}`);
@@ -128,6 +138,7 @@ const Card = ({
           }
         });
         toast.success('Product added to wishlist!');
+        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
       }
       setIsWishlisted(!isWishlisted);
       if (onWishlistChange) onWishlistChange();
@@ -188,6 +199,7 @@ const Card = ({
       });
       setIsInCart(true);
       toast.success('Product added to cart!');
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
     } catch (error) {
       const axiosError = error as AxiosError;
       if (axiosError.response?.status === 400) {
@@ -237,9 +249,6 @@ const Card = ({
               <FiHeart 
                 className={`h-4 w-4 ${isWishlisted ? 'text-[#DB4444] fill-[#DB4444]' : 'text-black'} hover:cursor-pointer hover:opacity-60`} 
               />
-            </button>
-            <button className="absolute right-1 top-12 bg-white rounded-full p-1.5 hover:cursor-pointer hover:opacity-60">
-              <Image src="/images/filleye.png" alt="Quick view" width={16} height={16} />
             </button>
           </>
         )}

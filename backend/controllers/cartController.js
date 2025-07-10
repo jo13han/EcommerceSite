@@ -66,7 +66,11 @@ exports.removeFromCart = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    user.cart = user.cart.filter(item => item.productId !== productId);
+    // Log for debugging
+    console.log('Remove request for productId:', productId);
+    console.log('Cart productIds:', user.cart.map(i => i.productId));
+
+    user.cart = user.cart.filter(item => item.productId != productId);
     await user.save();
     
     res.json({ message: 'Item removed from cart', cart: user.cart });
@@ -87,13 +91,21 @@ exports.updateQuantity = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (quantity < 1) {
-      return res.status(400).json({ error: 'Quantity must be at least 1' });
-    }
+    // Log for debugging
+    console.log('Update request for productId:', productId);
+    console.log('Cart productIds:', user.cart.map(i => i.productId));
 
-    const cartItem = user.cart.find(item => item.productId === productId);
+    // Robust comparison
+    const cartItem = user.cart.find(item => item.productId == productId);
     if (!cartItem) {
       return res.status(404).json({ error: 'Item not found in cart' });
+    }
+
+    if (quantity < 1) {
+      // Remove item from cart if quantity is less than 1
+      user.cart = user.cart.filter(item => item.productId != productId);
+      await user.save();
+      return res.json(user.cart);
     }
 
     cartItem.quantity = quantity;

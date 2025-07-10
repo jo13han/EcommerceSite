@@ -7,6 +7,7 @@ import { useKeenSlider } from 'keen-slider/react';
 const bestSellingProducts = [
 	{
 		id: 1,
+		productId: 'b1',
 		image: '/images/bestsellers/bestsellercoat.png',
 		title: 'The north coat',
 		price: 260,
@@ -16,6 +17,7 @@ const bestSellingProducts = [
 	},
 	{
 		id: 2,
+		productId: 'b2',
 		image: '/images/bestsellers/bestsellerbag.png',
 		title: 'Gucci duffle bag',
 		price: 960,
@@ -25,6 +27,7 @@ const bestSellingProducts = [
 	},
 	{
 		id: 3,
+		productId: 'b3',
 		image: '/images/bestsellers/bestsellercpu.png',
 		title: 'RGB liquid CPU Cooler',
 		price: 160,
@@ -34,6 +37,7 @@ const bestSellingProducts = [
 	},
 	{
 		id: 4,
+		productId: 'b4',
 		image: '/images/bestsellers/bestsellerbookshelf.png',
 		title: 'Small BookSelf',
 		price: 360,
@@ -76,7 +80,7 @@ const BestSellingSection = () => {
 					{repeatedProducts.map((product, idx) => (
 						<div className="keen-slider__slide min-w-0" key={idx}>
 							<Card
-								productId={String(product.id)}
+								productId={product.productId}
 								image={product.image}
 								title={product.title}
 								price={product.price}

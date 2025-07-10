@@ -4,8 +4,10 @@ import { FiSearch, FiHeart, FiShoppingCart } from "react-icons/fi";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FiUser, FiBox, FiStar, FiLogOut, FiMenu, FiX, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiUser, FiBox, FiStar, FiLogOut, FiMenu, FiX, FiChevronDown, FiChevronUp, FiClock } from "react-icons/fi";
 import { useAuth } from "@/context/AuthContext";
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 
 // Category map (reuse from Sidebar)
 const CATEGORY_MAP: { [key: string]: string[] } = {
@@ -56,6 +58,41 @@ const Navbar = () => {
   const pathname = usePathname();
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Search history states
+  const [showDesktopHistory, setShowDesktopHistory] = useState(false);
+  const [showMobileHistory, setShowMobileHistory] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
+  // Load search history from localStorage on component mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('searchHistory');
+    if (savedHistory) {
+      setSearchHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  // Save search history to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+  }, [searchHistory]);
+
+  // Handle clicks outside search dropdowns
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (desktopSearchRef.current && !desktopSearchRef.current.contains(event.target as Node)) {
+        setShowDesktopHistory(false);
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(event.target as Node)) {
+        setShowMobileHistory(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -76,14 +113,67 @@ const Navbar = () => {
     router.push('/');
   };
 
+  // Add search term to history
+  const addToHistory = (searchTerm: string) => {
+    if (searchTerm.trim()) {
+      const newHistory = [
+        searchTerm.trim(),
+        ...searchHistory.filter(item => item !== searchTerm.trim())
+      ].slice(0, 5); // Keep only last 5 items
+      setSearchHistory(newHistory);
+    }
+  };
+
+  // Handle search from history
+  const handleHistorySearch = (searchTerm: string) => {
+    setSearchQuery(searchTerm);
+    router.push(`/products?search=${encodeURIComponent(searchTerm)}`);
+    setShowDesktopHistory(false);
+    setShowMobileHistory(false);
+    setShowMobileSearch(false);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      addToHistory(searchQuery.trim());
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
     } else {
       router.push('/products');
     }
+    setShowDesktopHistory(false);
+    setShowMobileHistory(false);
     setShowMobileSearch(false);
+  };
+
+  // Handle desktop search focus
+  const handleDesktopSearchFocus = () => {
+    if (searchQuery === '' && searchHistory.length > 0) {
+      setShowDesktopHistory(true);
+    }
+  };
+
+  // Handle mobile search focus
+  const handleMobileSearchFocus = () => {
+    if (searchQuery === '' && searchHistory.length > 0) {
+      setShowMobileHistory(true);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    // Hide history dropdowns when user starts typing
+    if (value !== '') {
+      setShowDesktopHistory(false);
+      setShowMobileHistory(false);
+    } else if (searchHistory.length > 0) {
+      // Show history when input is cleared and there's history
+      setShowDesktopHistory(true);
+      setShowMobileHistory(true);
+    }
   };
 
   const toggleCategory = (categoryName: string) => {
@@ -93,6 +183,30 @@ const Navbar = () => {
         : [...prev, categoryName]
     );
   };
+
+  const { token } = useAuth();
+
+  // Cart and Wishlist counts with queryFn
+  const { data: cartItems = [] } = useQuery<any[]>({
+    queryKey: ['cart'],
+    queryFn: async () => {
+      if (!token) return [];
+      const response = await api.get('/api/cart');
+      return response.data;
+    },
+    enabled: !!token,
+  });
+  const { data: wishlistProducts = [] } = useQuery<any[]>({
+    queryKey: ['wishlist'],
+    queryFn: async () => {
+      if (!token) return [];
+      const response = await api.get('/api/wishlist');
+      return Array.isArray(response.data)
+        ? response.data.map(item => item.product || item)
+        : [];
+    },
+    enabled: !!token,
+  });
 
   return (
     <div className="w-full border-b bg-white border-gray-300">
@@ -181,27 +295,58 @@ const Navbar = () => {
           </button>
         </div>
         {/* Desktop Search and Icons */}
-        <form onSubmit={handleSearch} className="relative hidden md:flex items-center">
-          <input 
-            type="text" 
-            placeholder="What are you looking for?"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-gray-100 rounded-md px-4 py-2 w-64 text-sm text-black transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:bg-white"
-          />
-          <button type="submit" className="absolute right-3 top-2.5 text-black">
-            <FiSearch />
-          </button>
-        </form>
+        <div ref={desktopSearchRef} className="relative hidden md:block">
+          <form onSubmit={handleSearch} className="relative flex items-center">
+            <input 
+              type="text" 
+              placeholder="What are you looking for?"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={handleDesktopSearchFocus}
+              className="bg-gray-100 rounded-md px-4 py-2 w-64 text-sm text-black transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#DB4444] focus:bg-white"
+            />
+            <button type="submit" className="absolute right-3 top-2.5 text-black">
+              <FiSearch />
+            </button>
+          </form>
+          {/* Desktop Search History Dropdown */}
+          {showDesktopHistory && searchHistory.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+              <div className="p-2">
+                <div className="text-xs text-gray-500 mb-2 px-2">Recent searches</div>
+                {searchHistory.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleHistorySearch(item)}
+                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-black hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <FiClock className="h-4 w-4 text-gray-400" />
+                    <span className="truncate">{item}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="hidden md:flex items-center gap-4">
-          <button className="p-2 transition-transform hover:scale-110 cursor-pointer" aria-label="Wishlist">
+          <button className="p-2 transition-transform hover:scale-110 cursor-pointer relative" aria-label="Wishlist">
             <Link href="/wishlist">
               <FiHeart className="h-5 w-5 text-black" />
+              {wishlistProducts.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white z-10">
+                  {wishlistProducts.length}
+                </span>
+              )}
             </Link>
           </button>
-          <button className="p-2 transition-transform hover:scale-110 cursor-pointer" aria-label="Cart">
+          <button className="p-2 transition-transform hover:scale-110 cursor-pointer relative" aria-label="Cart">
             <Link href="/cart">
               <FiShoppingCart className="h-5 w-5 text-black" />
+              {cartItems.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white z-10">
+                  {cartItems.length}
+                </span>
+              )}
             </Link>
           </button>
           {user && (
@@ -262,19 +407,40 @@ const Navbar = () => {
               <FiX className="h-6 w-6 text-black" />
             </button>
           </div>
-          <form onSubmit={handleSearch} className="flex items-center border-b border-gray-300">
-            <input
-              type="text"
-              placeholder="What are you looking for?"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full py-2 text-black text-lg focus:outline-none"
-              autoFocus
-            />
-            <button type="submit" className="p-2">
-              <FiSearch className="h-6 w-6 text-black" />
-            </button>
-          </form>
+          <div ref={mobileSearchRef} className="relative">
+            <form onSubmit={handleSearch} className="flex items-center border-b border-gray-300">
+              <input
+                type="text"
+                placeholder="What are you looking for?"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={handleMobileSearchFocus}
+                className="w-full py-2 text-black text-lg focus:outline-none"
+                autoFocus
+              />
+              <button type="submit" className="p-2">
+                <FiSearch className="h-6 w-6 text-black" />
+              </button>
+            </form>
+            {/* Mobile Search History Dropdown */}
+            {showMobileHistory && searchHistory.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div className="p-2">
+                  <div className="text-xs text-gray-500 mb-2 px-2">Recent searches</div>
+                  {searchHistory.map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleHistorySearch(item)}
+                      className="w-full flex items-center gap-2 px-2 py-3 text-sm text-black hover:bg-gray-100 rounded transition-colors"
+                    >
+                      <FiClock className="h-4 w-4 text-gray-400" />
+                      <span className="truncate">{item}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -309,12 +475,26 @@ const Navbar = () => {
             )}
             {/* Cart and Wishlist Icons (Mobile) */}
             <div className="flex justify-center gap-6 mb-6">
-              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} aria-label="Wishlist">
-                <FiHeart className="h-6 w-6 text-black" />
-              </Link>
-              <Link href="/cart" onClick={() => setMobileMenuOpen(false)} aria-label="Cart">
-                <FiShoppingCart className="h-6 w-6 text-black" />
-              </Link>
+              <div className="relative">
+                <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} aria-label="Wishlist">
+                  <FiHeart className="h-6 w-6 text-black" />
+                  {wishlistProducts.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white z-10">
+                      {wishlistProducts.length}
+                    </span>
+                  )}
+                </Link>
+              </div>
+              <div className="relative">
+                <Link href="/cart" onClick={() => setMobileMenuOpen(false)} aria-label="Cart">
+                  <FiShoppingCart className="h-6 w-6 text-black" />
+                  {cartItems.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white z-10">
+                      {cartItems.length}
+                    </span>
+                  )}
+                </Link>
+              </div>
             </div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-black">Menu</h2>
