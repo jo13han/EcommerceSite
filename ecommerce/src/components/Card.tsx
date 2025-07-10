@@ -50,7 +50,7 @@ const Card = ({
   const router = useRouter();
   const queryClient = useQueryClient();
   // Subscribe to cart query for reactive updates
-  const { data: cartItems = [] } = useQuery<any[]>({
+  const { data: cartItems = [] } = useQuery<unknown[]>({
     queryKey: ['cart'],
     queryFn: async () => {
       if (!token) return [];
@@ -97,12 +97,12 @@ const Card = ({
   // Reactively update isInCart when cartItems or productId changes
   useEffect(() => {
     if (!productId || !cartItems) return;
-    const found = cartItems.some((item: any) => {
-      return (
-        item.productId === productId ||
-        (item.product && item.product.productId === productId) ||
-        item._id === productId
-      );
+    const found = cartItems.some((item: unknown) => {
+      if (typeof item === 'object' && item !== null && 'productId' in item) {
+        // @ts-expect-error: dynamic object
+        return item.productId === productId || (item.product && item.product.productId === productId) || item._id === productId;
+      }
+      return false;
     });
     setIsInCart(found);
   }, [cartItems, productId]);

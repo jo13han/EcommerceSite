@@ -83,7 +83,7 @@ export default function BillingSection() {
 
   // Place order mutation
   const placeOrderMutation = useMutation({
-    mutationFn: async (data: Record<string, any>) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       if (payment === 'bank') {
         setBankMsg('We are working on adding card transactions.');
         throw new Error('Bank payment not supported');
@@ -95,9 +95,12 @@ export default function BillingSection() {
         streetAddress: data.street,
         town: data.city,
         apartment: data.apartment,
-        products: cartItems.map((item: any) => ({
+        products: cartItems.map((item: unknown) => ({
+          // @ts-expect-error: dynamic object
           productId: item.productId,
+          // @ts-expect-error: dynamic object
           quantity: item.quantity,
+          // @ts-expect-error: dynamic object
           price: item.price,
         })),
         paymentMethod: payment,
@@ -112,7 +115,7 @@ export default function BillingSection() {
       // Clear the cart after order
       try {
         await api.delete('/api/cart/clear');
-      } catch (e) {
+      } catch {
         // Ignore errors, just try to clear
       }
       queryClient.invalidateQueries({ queryKey: ['cart'] });

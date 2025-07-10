@@ -29,7 +29,7 @@ export default function OrdersPage() {
           setProductMap(map);
         }
       })
-      .catch(err => {
+      .catch(() => {
         setError('Failed to fetch orders');
       })
       .finally(() => setLoading(false));

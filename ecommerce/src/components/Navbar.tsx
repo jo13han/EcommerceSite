@@ -187,7 +187,7 @@ const Navbar = () => {
   const { token } = useAuth();
 
   // Cart and Wishlist counts with queryFn
-  const { data: cartItems = [] } = useQuery<any[]>({
+  const { data: cartItems = [] } = useQuery<unknown[]>({
     queryKey: ['cart'],
     queryFn: async () => {
       if (!token) return [];
@@ -196,7 +196,7 @@ const Navbar = () => {
     },
     enabled: !!token,
   });
-  const { data: wishlistProducts = [] } = useQuery<any[]>({
+  const { data: wishlistProducts = [] } = useQuery<unknown[]>({
     queryKey: ['wishlist'],
     queryFn: async () => {
       if (!token) return [];

@@ -24,8 +24,13 @@ export default function ContactSection() {
     try {
       await api.post('/api/contact', form);
       setSent(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to send message');
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        // @ts-expect-error: axios error
+        setError(err.response?.data?.error || 'Failed to send message');
+      } else {
+        setError('Failed to send message');
+      }
     } finally {
       setSending(false);
     }
