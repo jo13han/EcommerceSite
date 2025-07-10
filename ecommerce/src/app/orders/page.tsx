@@ -22,8 +22,8 @@ export default function OrdersPage() {
         const ids = Array.from(new Set(res.data.flatMap((order: { products: { productId: string }[] }) => order.products.map((p: { productId: string }) => p.productId))));
         if (ids.length) {
           const prodRes = await api.get(`/api/products/bulk?ids=${ids.join(',')}`);
-          const map = {};
-          prodRes.data.forEach((prod) => {
+          const map: Record<string, { _id: string; image?: string; name?: string }> = {};
+          prodRes.data.forEach((prod: { _id: string; image?: string; name?: string }) => {
             map[prod._id] = prod;
           });
           setProductMap(map);
@@ -51,7 +51,7 @@ export default function OrdersPage() {
           <div className="text-gray-500">You have no orders yet.</div>
         ) : (
           <div className="space-y-10">
-            {orders.map((order) => (
+            {orders.map((order: { _id: string; createdAt: string; status: string; streetAddress: string; apartment: string; town: string; paymentMethod: string; products: { productId: string; quantity: number; price: number }[] }) => (
               <div key={order._id} className="bg-white rounded-xl shadow-md p-8 max-w-2xl mx-auto">
                 <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div className="text-black font-semibold">Order Date: <span className="font-normal">{new Date(order.createdAt).toLocaleDateString()}</span></div>
@@ -71,7 +71,7 @@ export default function OrdersPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {order.products.map((p, idx) => {
+                      {order.products.map((p: { productId: string; quantity: number; price: number }, idx: number) => {
                         const prod = productMap[p.productId];
                         return (
                           <tr key={idx} className="border-t border-gray-100">
