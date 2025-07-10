@@ -77,7 +77,7 @@ export default function OrdersPage() {
                           <tr key={idx} className="border-t border-gray-100">
                             <td className="px-4 py-2">
                               {prod && prod.image && (
-                                <Image src={prod.image} alt={prod.name} width={40} height={40} className="object-contain rounded" />
+                                <Image src={prod.image ?? "/images/placeholder.png"} alt={prod.name ?? "Product image"} width={40} height={40} className="object-contain rounded" />
                               )}
                             </td>
                             <td className="px-4 py-2 text-black">{prod ? prod.name : p.productId}</td>
