@@ -19,7 +19,7 @@ export default function OrdersPage() {
         setOrders(res.data);
         setError('');
         // Collect all unique productIds
-        const ids = Array.from(new Set(res.data.flatMap(order => order.products.map(p => p.productId))));
+        const ids = Array.from(new Set(res.data.flatMap((order: { products: { productId: string }[] }) => order.products.map((p: { productId: string }) => p.productId))));
         if (ids.length) {
           const prodRes = await api.get(`/api/products/bulk?ids=${ids.join(',')}`);
           const map = {};
