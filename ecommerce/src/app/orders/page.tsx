@@ -9,7 +9,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [productMap, setProductMap] = useState({});
+  const [productMap, setProductMap] = useState<Record<string, { _id: string; image?: string; name?: string }>>({});
 
   useEffect(() => {
     if (!user?._id) return;
